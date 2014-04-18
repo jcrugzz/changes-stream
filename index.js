@@ -27,11 +27,15 @@ function ChangesStream (options) {
   // Bit of a buffer for aggregating data
   this._buffer = '';
   this._decoder = new StringDecoder('utf8');
+
   this.timeout = options.timeout || 2 * 60 * 1000;
   this.reconnect = options.reconnect || {};
   this.db = typeof options === 'string'
     ? options
     : options.db;
+
+  // http option
+  this.rejectUnauthorized = options.strictSSL || options.rejectUnauthorized || true;
 
   if (!this.db) {
     throw new Error('DB is required');
@@ -91,6 +95,7 @@ ChangesStream.prototype.request = function () {
   //
   opts.method = this.filterIds ? 'POST' : 'GET';
   opts.timeout = this.timeout;
+  opts.rejectUnauthorized = this.rejectUnauthorized;
   opts.headers = {
     'accept': 'application/json'
   };
