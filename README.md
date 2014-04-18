@@ -1,5 +1,7 @@
 # changes-stream
 
+[![build status](https://secure.travis-ci.org/jcrugzz/changes-stream.png)](http://travis-ci.org/jcrugzz/changes-stream)
+
 A fault tolerant changes stream with builtin retry HEAVIlY inspired by
 [`follow`][follow]. This module is a [`Readable` Stream][readable] with all of
 the fun stream methods that you would expect.
