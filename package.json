@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "back": "~0.1.5",
-    "debug": "~0.8.1",
+    "debug": "~0.8.0",
     "http-https": "~1.0.0"
   },
   "devDependencies": {
