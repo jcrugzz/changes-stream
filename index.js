@@ -155,6 +155,13 @@ ChangesStream.prototype.readData = function (data) {
     if (line === '') {
       return this.emit('heartbeat');
     }
+
+    //
+    // Update the since value internally as we will need that to
+    // be up to date for proper retries
+    //
+    this.since = line.seq;
+
     //
     // This is ugly but replicates the correct behavior
     // for running a client side filter function
