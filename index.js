@@ -29,6 +29,8 @@ function ChangesStream (options) {
   this._decoder = new StringDecoder('utf8');
 
   this.timeout = options.timeout || 2 * 60 * 1000;
+  // Time to wait for a new change before we jsut retry a brand new request
+  this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
   this.reconnect = options.reconnect || {};
   this.db = typeof options === 'string'
     ? options
@@ -43,12 +45,14 @@ function ChangesStream (options) {
   // Setup all query options and defaults
   this.feed = options.feed || 'continuous';
   this.since = options.since || 0;
-  this.heartbeat = options.heartbeat || 30 * 1000; // default 30 seconds
+  // Allow couch heartbeat to be used but we can just manage that timeout
+  this.heartbeat = options.heartbeat || 30 * 1000;
   this.style = options.style || 'main_only';
 
   this.filterIds = Array.isArray(options.filter)
     ? options.filter
     : false;
+
   this.filter = !this.filterIds
     ? (options.filter || false)
     : '_doc_ids';
@@ -99,6 +103,7 @@ ChangesStream.prototype.request = function () {
   opts.headers = {
     'accept': 'application/json'
   };
+
   //
   // When we are a post we need to create a payload;
   //
@@ -107,16 +112,22 @@ ChangesStream.prototype.request = function () {
     payload = new Buffer(JSON.stringify(this.filterIds), 'utf8');
   }
 
+  //
+  // Set a timer for the initial request with some extra magic number
+  //
+  this.timer = setTimeout(this.onTimeout.bind(this), this.heartbeat + 5000)
+
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
-  this.req.on('error', this.retry.bind(this));
-  this.req.on('response', this.response.bind(this));
+  this.req.on('error', this._onError.bind(this));
+  this.req.on('response', this._onResponse.bind(this));
   if (payload) {
     this.req.write(payload);
   }
   this.req.end();
 
 };
+
 
 //
 // Handle the response from a new request
@@ -125,18 +136,37 @@ ChangesStream.prototype.request = function () {
 // compatible with how streams3 will work anyway. This just makes the _read
 // function essentially useless as it is on most cases
 //
-ChangesStream.prototype.response = function (res) {
+ChangesStream.prototype._onResponse = function (res) {
+  clearTimeout(this.timer);
+  this.timer = null;
   if (res.statusCode !== 200) {
     return this.emit('error', new Error('Received a ' + res.statusCode + ' from couch'));
   }
   this.source = res;
-  this.source.on('data', this.readData.bind(this));
+  //
+  // Set a timer so that we know we are actually getting some changes from the
+  // socket
+  //
+  this.timer = setTimeout(this.onTimeout.bind(this), this.inactivity_ms);
+  this.source.on('data', this._readData.bind(this));
+};
+
+//
+// Little wrapper around retry for our self set timeouts
+//
+ChangesStream.prototype.onTimeout = function () {
+  clearTimeout(this.timer);
+  this.timer = null
+  debug('request timed out or is inactive, lets retry');
+  this.retry();
 };
 
 //
 // Parse and read the data that we get from _changes
 //
-ChangesStream.prototype.readData = function (data) {
+ChangesStream.prototype._readData = function (data) {
+  debug('data event fired from the underlying _changes response');
+
   this._buffer += this._decoder.write(data);
 
   var lines = this._buffer.split('\n');
@@ -144,70 +174,109 @@ ChangesStream.prototype.readData = function (data) {
 
   for (var i=0; i<lines.length; i++) {
     var line = lines[i];
+
     try { line = JSON.parse(line) }
     catch (ex) { return; }
-
     //
-    // If we are ever going to have backpressure issues
-    // we would want to see if push returned false/null
-    // and then stop reading from underlying source
+    // Process each change
     //
-    if (line === '') {
-      return this.emit('heartbeat');
-    }
-
-    //
-    // Update the since value internally as we will need that to
-    // be up to date for proper retries
-    //
-    this.since = line.seq;
-
-    //
-    // This is ugly but replicates the correct behavior
-    // for running a client side filter function
-    //
-    if (this.clientFilter) {
-      var doc = JDUP(line.doc);
-      var query = JDUP({ query: this.query });
-      if (!this.filter(doc, query)) {
-        return;
-      }
-      return this.push(line);
-    }
-    this.push(line);
+    this._onChange(line);
   }
 };
 
-ChangesStream.prototype.retry = function (err) {
+//
+// Process each change request
+//
+ChangesStream.prototype._onChange = function (change) {
+  var query, doc;
+  if (this.timer) {
+    clearTimeout(this.timer);
+    this.timer = null;
+    this.timer = setTimeout(this.onTimeout.bind(this), this.inactivity_ms);
+  }
+
+  if (change === '') {
+    return this.emit('heartbeat');
+  }
+
+  //
+  // Update the since value internally as we will need that to
+  // be up to date for proper retries
+  //
+  this.since = change.seq || change.last_seq || this.since;
+
+  //
+  // This is ugly but replicates the correct behavior
+  // for running a client side filter function
+  //
+  if (this.clientFilter) {
+    doc = JDUP(change.doc);
+    query = JDUP({ query: this.query });
+    if (!this.filter(doc, query)) {
+      return;
+    }
+  }
+
+  //
+  // If we are ever going to have backpressure issues
+  // we would want to see if push returned false/null
+  // and then stop reading from underlying source.
+  //
+  this.push(change);
+
+  //
+  // End the stream if we are on teh last change
+  //
+  if (change.last_seq) this.push(null);
+};
+
+//
+// On error be set for retrying the underlying request
+//
+ChangesStream.prototype._onError = function (err) {
   return back(function (fail, attempt) {
     if (fail) {
       return this.emit('error', err);
     }
-    debug('retry number %d', attempt.attempt);
-    //
-    // Allows us to set the DB to something different if we want to
-    //
-    this.emit('retry');
-    this.req.removeAllListeners();
-    this.request();
+    debug('retry # %d', attempt.attempt);
+
+    this.retry();
   }, this.reconnect);
 };
 
+//
+// Cleanup and flush any data and retry the request
+//
+ChangesStream.prototype.retry = function () {
+  debug('retry request');
+  this.emit('retry');
+  this.cleanup();
+  this.request();
+};
+
+//
+// Pause the underlying socket if we want manually handle that backpressure
+// and buffering
+//
 ChangesStream.prototype.pause = function () {
   if (!this.paused) {
     debug('paused the source request');
+    this.emit('pause');
     this.source.pause();
     this.paused = true;
-    this.emit('pause');
   }
 };
 
+//
+// Resume the underlying socket so we continue to push changes onto the
+// internal buffer
+//
 ChangesStream.prototype.resume = function () {
   if (this.paused) {
     debug('resumed the source request');
+    this.emit('resume');
     this.source.resume();
     this.paused = false;
-    this.emit('resume');
   }
 };
 
@@ -224,22 +293,34 @@ ChangesStream.prototype.preCleanup = function () {
 };
 
 //
-// Useful for cases where the request is still runnning and we haven't errored
+// Cleanup the valuable internals, great for before a retry
 //
-ChangesStream.prototype.destroy =
 ChangesStream.prototype.cleanup = function () {
-  debug('cleanup/destroy: flushing any possible buffer and killing underlying request');
-  this.req.abort();
+  debug('cleanup: flushing any possible buffer and killing underlying request');
+  if (this.timer) {
+    clearTimeout(this.timer);
+    this.timer = null;
+  }
+  if (this.req && this.req.socket) {
+    this.req.abort();
+    this.req.removeAllListeners();
+    this.req = null;
+  }
   this.preCleanup();
-  this.req.removeAllListeners();
-  delete this.req;
-  if (this.source) {
+  if (this.source && this.source.socket) {
     this.source.removeAllListeners();
     this.source.destroy();
-    delete this.source;
+    this.source = null
   }
+};
+
+//
+// Complete destroy the internals and end the stream
+//
+ChangesStream.prototype.destroy = function () {
+  this.cleanup();
   this._decoder.end();
-  delete this._decoder;
+  this._decoder = null;
   this.removeAllListeners();
   this.push(null);
 };
