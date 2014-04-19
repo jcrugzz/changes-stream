@@ -83,21 +83,20 @@ test('Initial Change test', function (t) {
   t.plan(5);
   var changes;
 
+  function fail (err) {
+    t.fail(err.message);
+    t.end();
+  }
   deleteDb(function (err) {
-    if (err) {
-      return t.fail(err.message);
-    }
+    if (err) return fail(err);
     t.ok(true, 'Database deleted')
     createDb(function (err) {
-      if (err) {
-        return t.fail(err.message);
-      }
+      if (err) return fail(err);
       t.ok(true, 'Database created');
       insertDoc(function (err) {
-        if (err) {
-          return t.fail(err.message);
-        }
+        if (err) return fail(err);
         t.ok(true, 'Doc inserted')
+
         changes = new ChangesStream({
           db: db,
           include_docs: true
