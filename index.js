@@ -241,7 +241,7 @@ ChangesStream.prototype._onError = function (err) {
     debug('retry # %d', attempt.attempt);
 
     this.retry();
-  }, this.reconnect);
+  }.bind(this), this.reconnect);
 };
 
 //
