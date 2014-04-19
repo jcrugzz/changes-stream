@@ -229,12 +229,13 @@ ChangesStream.prototype.preCleanup = function () {
 ChangesStream.prototype.destroy =
 ChangesStream.prototype.cleanup = function () {
   debug('cleanup/destroy: flushing any possible buffer and killing underlying request');
+  this.req.abort();
   this.preCleanup();
   this.req.removeAllListeners();
-  this.req.abort();
   delete this.req;
   if (this.source) {
     this.source.removeAllListeners();
+    this.source.destroy();
     delete this.source;
   }
   this._decoder.end();
