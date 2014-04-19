@@ -7,6 +7,8 @@ var debug = require('debug')('changes-stream');
 var http = require('http-https');
 var back = require('back');
 
+var extend = util._extend;
+
 module.exports = ChangesStream;
 
 util.inherits(ChangesStream, Readable);
@@ -31,7 +33,7 @@ function ChangesStream (options) {
   this.timeout = options.timeout || 2 * 60 * 1000;
   // Time to wait for a new change before we jsut retry a brand new request
   this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
-  this.reconnect = options.reconnect || {};
+  this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 60 * 1000 };
   this.db = typeof options === 'string'
     ? options
     : options.db;
@@ -115,7 +117,7 @@ ChangesStream.prototype.request = function () {
   //
   // Set a timer for the initial request with some extra magic number
   //
-  this.timer = setTimeout(this.onTimeout.bind(this), this.heartbeat + 5000)
+  this.timer = setTimeout(this.onTimeout.bind(this), (this.heartbeat || 30 * 1000) + 5000)
 
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
@@ -234,14 +236,15 @@ ChangesStream.prototype._onChange = function (change) {
 // On error be set for retrying the underlying request
 //
 ChangesStream.prototype._onError = function (err) {
-  return back(function (fail, attempt) {
+  var reconnect = extend({}, this.reconnect);
+  return back(function (fail, opts) {
     if (fail) {
-      return this.emit('error', err);
+      return this.emit('error', fail);
     }
-    debug('retry # %d', attempt.attempt);
+    debug('retry # %d', opts.attempt);
 
     this.retry();
-  }.bind(this), this.reconnect);
+  }.bind(this), reconnect);
 };
 
 //
@@ -318,11 +321,12 @@ ChangesStream.prototype.cleanup = function () {
 // Complete destroy the internals and end the stream
 //
 ChangesStream.prototype.destroy = function () {
+  debug('destroy the instance and end the stream')
   this.cleanup();
   this._decoder.end();
   this._decoder = null;
-  this.removeAllListeners();
   this.push(null);
+  this.removeAllListeners();
 };
 
 //
