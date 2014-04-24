@@ -25,7 +25,7 @@ function ChangesStream (options) {
   //
   // PARSE ALL THE OPTIONS OMG
   //
-  this._feedParams = ['heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style'];
+  this._feedParams = ['heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style', 'since'];
   // Bit of a buffer for aggregating data
   this._buffer = '';
   this._decoder = new StringDecoder('utf8');
