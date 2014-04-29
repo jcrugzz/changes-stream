@@ -1,6 +1,6 @@
 {
   "name": "changes-stream",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Simple module that handles getting changes from couchdb",
   "main": "index.js",
   "scripts": {
