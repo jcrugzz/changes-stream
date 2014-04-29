@@ -33,7 +33,7 @@ function ChangesStream (options) {
   this.timeout = options.timeout || 2 * 60 * 1000;
   // Time to wait for a new change before we jsut retry a brand new request
   this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
-  this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 60 * 1000 };
+  this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 30 * 1000, retries: 5 };
   this.db = typeof options === 'string'
     ? options
     : options.db;
@@ -236,15 +236,16 @@ ChangesStream.prototype._onChange = function (change) {
 // On error be set for retrying the underlying request
 //
 ChangesStream.prototype._onError = function (err) {
-  var reconnect = extend({}, this.reconnect);
+  this.attempt = this.attempt || extend({}, this.reconnect);
   return back(function (fail, opts) {
     if (fail) {
-      return this.emit('error', fail);
+      this.attempt = null;
+      return this.emit('error', err);
     }
     debug('retry # %d', opts.attempt);
 
     this.retry();
-  }.bind(this), reconnect);
+  }.bind(this), this.attempt);
 };
 
 //
