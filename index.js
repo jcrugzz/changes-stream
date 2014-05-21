@@ -269,7 +269,7 @@ ChangesStream.prototype.pause = function () {
   if (!this.paused) {
     debug('paused the source request');
     this.emit('pause');
-    this.source.pause();
+    this.source && this.source.pause();
     this.paused = true;
   }
 };
