@@ -224,7 +224,10 @@ ChangesStream.prototype._onChange = function (change) {
   // we would want to see if push returned false/null
   // and then stop reading from underlying source.
   //
-  this.push(change);
+  if (!this.push(change)) {
+    debug('paused feed due to highWatermark and backpressure purposes');
+    this.pause();
+  }
 
   //
   // End the stream if we are on teh last change
@@ -333,7 +336,9 @@ ChangesStream.prototype.destroy = function () {
 //
 // Lol @_read
 //
-ChangesStream.prototype._read = function (n) {};
+ChangesStream.prototype._read = function (n) {
+  this.resume();
+};
 
 function JDUP (obj) {
   return JSON.parse(JSON.stringify(obj));
