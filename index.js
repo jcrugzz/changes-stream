@@ -19,9 +19,10 @@ util.inherits(ChangesStream, Readable);
 //
 function ChangesStream (options) {
   if (!(this instanceof ChangesStream)) { return new ChangesStream(options) }
-  Readable.call(this, { objectMode: true });
   options = options || {};
 
+  var hwm = options.highWaterMark || 16;
+  Readable.call(this, { objectMode: true, highWaterMark: hwm });
   //
   // PARSE ALL THE OPTIONS OMG
   //
