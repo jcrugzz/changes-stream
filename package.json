@@ -6,6 +6,10 @@
   "scripts": {
     "test": "tap test/*-test.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:jcrugzz/changes-stream.git"
+  },
   "keywords": [
     "changes",
     "couchdb",
@@ -13,6 +17,10 @@
   ],
   "author": "Jarrett Cruger <jcrugzz@gmail.com>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jcrugzz/changes-stream/issues"
+  },
+  "homepage": "https://github.com/jcrugzz/changes-stream",
   "dependencies": {
     "back": "~0.1.5",
     "debug": "~0.8.0",
