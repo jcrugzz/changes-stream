@@ -143,7 +143,9 @@ ChangesStream.prototype._onResponse = function (res) {
   clearTimeout(this.timer);
   this.timer = null;
   if (res.statusCode !== 200) {
-    return this.emit('error', new Error('Received a ' + res.statusCode + ' from couch'));
+    var err = new Error('Received a ' + res.statusCode + ' from couch');
+    err.statusCode = res.statusCode;
+    return this.emit('error', err);
   }
   this.source = res;
   //
