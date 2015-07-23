@@ -122,8 +122,8 @@ ChangesStream.prototype.request = function () {
 
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
-  this.req.on('error', this._onError.bind(this));
-  this.req.on('response', this._onResponse.bind(this));
+  this.req.once('error', this._onError.bind(this));
+  this.req.once('response', this._onResponse.bind(this));
   if (payload) {
     this.req.write(payload);
   }
