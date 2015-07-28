@@ -122,8 +122,8 @@ ChangesStream.prototype.request = function () {
 
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
-  this.req.on('error', this._onError.bind(this));
-  this.req.on('response', this._onResponse.bind(this));
+  this.req.once('error', this._onError.bind(this));
+  this.req.once('response', this._onResponse.bind(this));
   if (payload) {
     this.req.write(payload);
   }
@@ -152,6 +152,7 @@ ChangesStream.prototype._onResponse = function (res) {
   //
   this.timer = setTimeout(this.onTimeout.bind(this), this.inactivity_ms);
   this.source.on('data', this._readData.bind(this));
+  this.source.on('end', this._onEnd.bind(this));
 };
 
 //
@@ -250,6 +251,14 @@ ChangesStream.prototype._onError = function (err) {
 
     this.retry();
   }.bind(this), this.attempt);
+};
+
+//
+// When response ends (for example. CouchDB shuts down gracefully), create an
+// artificial error to let the user know what happened.
+//
+ChangesStream.prototype._onEnd = function () {
+  this._onError(new Error('CouchDB disconnected gracefully'));
 };
 
 //
