@@ -279,6 +279,11 @@ ChangesStream.prototype.retry = function () {
 //
 ChangesStream.prototype.pause = function () {
   if (!this.paused) {
+    //
+    // Call the underlying pause, otherwise things break when piping with
+    // streams3
+    //
+    Readable.prototype.pause.call(this);
     debug('paused the source request');
     this.emit('pause');
     this.source && this.source.pause();
@@ -292,6 +297,10 @@ ChangesStream.prototype.pause = function () {
 //
 ChangesStream.prototype.resume = function () {
   if (this.paused) {
+    //
+    // Call underlying resume so proper state is set under the hood
+    //
+    Readable.prototype.resume.call(this);
     debug('resumed the source request');
     this.emit('resume');
     this.source.resume();
