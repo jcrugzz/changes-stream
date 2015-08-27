@@ -1,4 +1,4 @@
-var Readable = require('stream').Readable;
+var Readable = require('readable-stream').Readable;
 var StringDecoder = require('string_decoder').StringDecoder;
 var url = require('url');
 var util = require('util');
