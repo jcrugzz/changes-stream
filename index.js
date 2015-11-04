@@ -41,6 +41,7 @@ function ChangesStream (options) {
 
   // http option
   this.rejectUnauthorized = options.strictSSL || options.rejectUnauthorized || true;
+  this.agent = options.agent;
 
   if (!this.db) {
     throw new Error('DB is required');
@@ -106,6 +107,7 @@ ChangesStream.prototype.request = function () {
   opts.headers = {
     'accept': 'application/json'
   };
+  opts.agent = this.agent;
 
   //
   // When we are a post we need to create a payload;

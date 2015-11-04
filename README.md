@@ -24,6 +24,7 @@ fully customize your `_changes` request. They include the following:
   filter: 'docs/whatever', // Can be a defined couchdb view, a local filter function or an array of IDs
   inactivity_ms: 60 * 60 * 1000, // time allow inactivity before retrying request
   timeout: 2 * 60 * 1000, // http timeout
+  agent: undefined, // http agent
   since: 0, // update sequence to start from, 'now' will start it from latest
   heartbeat: 30 * 1000, // how often we want couchdb to send us a heartbeat message
   style: 'main_only', // specifies how many revisions returned all_docs would return leaf revs
