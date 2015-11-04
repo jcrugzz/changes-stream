@@ -99,7 +99,7 @@ ChangesStream.prototype.preRequest = function () {
 ChangesStream.prototype.request = function () {
   // Setup possible query string options
   this.preRequest();
-  var opts = url.parse(this.db + '/_changes?' + qs.stringify(this.query)),
+  var opts = url.parse(url.resolve(url.resolve(this.db, '_changes'), '?' + qs.stringify(this.query))),
       payload;
   //
   // Handle both cases of POST and GET
