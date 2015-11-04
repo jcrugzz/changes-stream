@@ -39,6 +39,10 @@ function ChangesStream (options) {
     ? options
     : options.db;
 
+  if (this.db[this.db.length - 1] != '/') {
+    this.db = this.db + '/';
+  }
+
   // http option
   this.rejectUnauthorized = options.strictSSL || options.rejectUnauthorized || true;
 
