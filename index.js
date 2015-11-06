@@ -39,6 +39,8 @@ function ChangesStream (options) {
     ? options
     : options.db;
 
+  if (!this.db) throw new TypeError('you must specify a db');
+
   if (this.db[this.db.length - 1] != '/') {
     this.db = this.db + '/';
   }
