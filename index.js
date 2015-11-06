@@ -39,6 +39,12 @@ function ChangesStream (options) {
     ? options
     : options.db;
 
+  if (!this.db) throw new TypeError('you must specify a db');
+
+  if (this.db[this.db.length - 1] != '/') {
+    this.db = this.db + '/';
+  }
+
   // http option
   this.rejectUnauthorized = options.strictSSL || options.rejectUnauthorized || true;
   this.agent = options.agent;
@@ -96,7 +102,7 @@ ChangesStream.prototype.preRequest = function () {
 ChangesStream.prototype.request = function () {
   // Setup possible query string options
   this.preRequest();
-  var opts = url.parse(this.db + '/_changes?' + qs.stringify(this.query)),
+  var opts = url.parse(url.resolve(url.resolve(this.db, '_changes'), '?' + qs.stringify(this.query))),
       payload;
   //
   // Handle both cases of POST and GET
