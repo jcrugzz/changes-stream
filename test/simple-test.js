@@ -1,7 +1,9 @@
 var test = require('tap').test;
 var http = require('http-https');
 var url = require('url');
+var qs = require('querystring');
 var ChangesStream = require('../');
+var createMockChangesStream = require('./mock');
 
 var db = process.env.TEST_COUCH || 'http://localhost:5984/changes_stream_db'
 
@@ -114,3 +116,38 @@ test('Initial Change test', function (t) {
 
 });
 
+test('Respects query_params', function (t) {
+  var urlObj;
+
+  // Create mock that extends ChangesStream and overrides the `request` method
+  var Mock = createMockChangesStream({
+    request: function () {
+      this.preRequest();
+      urlObj = url.parse(url.resolve(url.resolve(this.db, '_changes'), '?' + qs.stringify(this.query)));
+    }
+  });
+
+  var all = {
+    heartbeat: 30 * 1000, // default
+    feed: 'continuous',   // default
+    style: 'all_docs',
+    since: 1000,
+    hello: 'world',
+    secret: 'shh don\'t tell'
+  };
+  var custom = {
+    hello: all.hello,
+    secret: all.secret
+  };
+  var changes = new Mock({
+    db: db,
+    style: all.style,
+    since: all.since,
+    query_params: custom
+  });
+
+  t.same(changes.query, all);
+  t.equal(urlObj.query, 'hello=world&secret=shh%20don%27t%20tell&heartbeat=30000&feed=continuous&style=all_docs&since=1000');
+  t.equal(changes.query_params, custom);
+  t.end();
+});
