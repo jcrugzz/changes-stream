@@ -58,6 +58,7 @@ function ChangesStream (options) {
   // Allow couch heartbeat to be used but we can just manage that timeout
   this.heartbeat = options.heartbeat || 30 * 1000;
   this.style = options.style || 'main_only';
+  this.query_params = options.query_params || {};
 
   this.filterIds = Array.isArray(options.filter)
     ? options.filter
@@ -87,7 +88,7 @@ ChangesStream.prototype.preRequest = function () {
       acc[key] = this[key];
     }
     return acc;
-  }.bind(this), {});
+  }.bind(this), JDUP(this.query_params));
 
   // Remove filter from query parameters since we have confirmed it as
   // a function
