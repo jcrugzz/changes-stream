@@ -86,6 +86,7 @@ function ChangesStream (options) {
     : true;
 
   this.paused = false;
+  this.destroying = false;
   this.request();
 }
 
@@ -254,9 +255,10 @@ ChangesStream.prototype._onChange = function (change) {
   }
 
   //
-  // End the stream if we are on teh last change
+  // End the stream if we are on teh last change. Start destroying ourselves
+  // (`#destroy()` calls `#push(null)`).
   //
-  if (change.last_seq) this.push(null);
+  if (change.last_seq) this.destroy();
 };
 
 //
@@ -290,6 +292,7 @@ ChangesStream.prototype._onEnd = function () {
 //
 ChangesStream.prototype.retry = function () {
   debug('retry request');
+  if (this._destroying) return;
   this.emit('retry');
   this.cleanup();
   this.request();
@@ -360,6 +363,7 @@ ChangesStream.prototype.cleanup = function () {
 //
 ChangesStream.prototype.destroy = function () {
   debug('destroy the instance and end the stream')
+  this._destroying = true;
   this.cleanup();
   this._decoder.end();
   this._decoder = null;
