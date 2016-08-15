@@ -280,7 +280,9 @@ ChangesStream.prototype._onError = function (err) {
 // artificial error to let the user know what happened.
 //
 ChangesStream.prototype._onEnd = function () {
-  this._onError(new Error('CouchDB disconnected gracefully'));
+  var err = new Error('CouchDB disconnected gracefully');
+  err.code = 'ECOUCHDBDISCONNECTEDGRACEFULLY'
+  this._onError(err)
 };
 
 //
