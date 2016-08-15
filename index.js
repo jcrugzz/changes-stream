@@ -9,6 +9,8 @@ var back = require('back');
 
 var extend = util._extend;
 
+var DEFAULT_HEARTBEAT = 30 * 1000;
+
 module.exports = ChangesStream;
 
 util.inherits(ChangesStream, Readable);
@@ -26,12 +28,12 @@ function ChangesStream (options) {
   //
   // PARSE ALL THE OPTIONS OMG
   //
-  this._feedParams = ['heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style', 'since'];
+  this._feedParams = ['heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style', 'since', 'timeout'];
   // Bit of a buffer for aggregating data
   this._buffer = '';
   this._decoder = new StringDecoder('utf8');
 
-  this.timeout = options.timeout || 2 * 60 * 1000;
+  this.requestTimeout = options.requestTimeout || 2 * 60 * 1000;
   // Time to wait for a new change before we jsut retry a brand new request
   this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
   this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 30 * 1000, retries: 5 };
@@ -56,9 +58,18 @@ function ChangesStream (options) {
   this.feed = options.feed || 'continuous';
   this.since = options.since || 0;
   // Allow couch heartbeat to be used but we can just manage that timeout
-  this.heartbeat = options.heartbeat || 30 * 1000;
+  // If passed heartbeat is a number, use the explicitly, if it's a boolean
+  // and true, use the default heartbeat, disable it otherwise.
+  if (typeof options.heartbeat === 'number')
+    this.heartbeat = options.heartbeat;
+  else if (typeof options.heartbeat === 'boolean')
+    this.heartbeat = options.heartbeat ? DEFAULT_HEARTBEAT : false;
+  else
+    this.heartbeat = DEFAULT_HEARTBEAT;
+
   this.style = options.style || 'main_only';
   this.query_params = options.query_params || {};
+  this.timeout = options.timeout
 
   this.filterIds = Array.isArray(options.filter)
     ? options.filter
@@ -84,7 +95,7 @@ function ChangesStream (options) {
 ChangesStream.prototype.preRequest = function () {
   // We want to actually reform this every time in case something has changed
   this.query = this._feedParams.reduce(function (acc, key) {
-    if (this[key]) {
+    if (typeof this[key] !== 'undefined' && this[key] !== false) {
       acc[key] = this[key];
     }
     return acc;
@@ -109,7 +120,7 @@ ChangesStream.prototype.request = function () {
   // Handle both cases of POST and GET
   //
   opts.method = this.filterIds ? 'POST' : 'GET';
-  opts.timeout = this.timeout;
+  opts.timeout = this.requestTimeout;
   opts.rejectUnauthorized = this.rejectUnauthorized;
   opts.headers = {
     'accept': 'application/json'
