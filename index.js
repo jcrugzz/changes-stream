@@ -367,7 +367,6 @@ ChangesStream.prototype.destroy = function () {
   this.cleanup();
   this._decoder.end();
   this._decoder = null;
-  this.removeAllListeners();
   this.push(null);
 };
 
