@@ -23,7 +23,8 @@ fully customize your `_changes` request. They include the following:
   feed: 'continuous', // Can also be longpoll technically but not currently implemented
   filter: 'docs/whatever', // Can be a defined couchdb view, a local filter function or an array of IDs
   inactivity_ms: 60 * 60 * 1000, // time allow inactivity before retrying request
-  timeout: 2 * 60 * 1000, // http timeout
+  timeout: undefined, // How long couchdb should wait for a change to show up before closing the feed. in milliseconds
+  requestTimeout: 2 * 60 * 1000, // http timeout
   agent: undefined, // http agent
   since: 0, // update sequence to start from, 'now' will start it from latest
   heartbeat: 30 * 1000, // how often we want couchdb to send us a heartbeat message
