@@ -132,6 +132,7 @@ test('Respects query_params', function (t) {
     feed: 'continuous',   // default
     style: 'all_docs',
     since: 1000,
+    limit: 5,
     hello: 'world',
     secret: 'shh don\'t tell'
   };
@@ -143,11 +144,12 @@ test('Respects query_params', function (t) {
     db: db,
     style: all.style,
     since: all.since,
+    limit: all.limit,
     query_params: custom
   });
 
   t.same(changes.query, all);
-  t.equal(urlObj.query, 'hello=world&secret=shh%20don%27t%20tell&heartbeat=30000&feed=continuous&style=all_docs&since=1000');
+  t.equal(urlObj.query, 'hello=world&secret=shh%20don%27t%20tell&heartbeat=30000&feed=continuous&style=all_docs&since=1000&limit=5');
   t.equal(changes.query_params, custom);
   t.end();
 });

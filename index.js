@@ -28,7 +28,10 @@ function ChangesStream (options) {
   //
   // PARSE ALL THE OPTIONS OMG
   //
-  this._feedParams = ['heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style', 'since', 'timeout'];
+  this._feedParams = [
+    'heartbeat', 'feed', 'filter', 'include_docs', 'view', 'style', 'since',
+    'timeout', 'limit'
+  ];
   // Bit of a buffer for aggregating data
   this._buffer = '';
   this._decoder = new StringDecoder('utf8');
@@ -70,6 +73,7 @@ function ChangesStream (options) {
   this.style = options.style || 'main_only';
   this.query_params = options.query_params || {};
   this.timeout = options.timeout
+  this.limit = options.limit;
 
   this.filterIds = Array.isArray(options.filter)
     ? options.filter
