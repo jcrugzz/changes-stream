@@ -89,6 +89,10 @@ function ChangesStream (options) {
     ? (options.include_docs || false)
     : true;
 
+  this.use_post = this.filterIds
+    ? false
+    : (options.use_post || false);
+
   this.paused = false;
   this.destroying = false;
   this.request();
@@ -119,12 +123,16 @@ ChangesStream.prototype.preRequest = function () {
 ChangesStream.prototype.request = function () {
   // Setup possible query string options
   this.preRequest();
-  var opts = url.parse(url.resolve(url.resolve(this.db, '_changes'), '?' + qs.stringify(this.query))),
+  var changes_url = url.resolve(this.db, '_changes'),
+      opts = url.parse(this.use_post
+        ? changes_url
+        : url.resolve(changes_url, '?' + qs.stringify(this.query))
+      ),
       payload;
   //
   // Handle both cases of POST and GET
   //
-  opts.method = this.filterIds ? 'POST' : 'GET';
+  opts.method = (this.filterIds || this.use_post) ? 'POST' : 'GET';
   opts.timeout = this.requestTimeout;
   opts.rejectUnauthorized = this.rejectUnauthorized;
   opts.headers = {
@@ -135,9 +143,9 @@ ChangesStream.prototype.request = function () {
   //
   // When we are a post we need to create a payload;
   //
-  if (this.filterIds) {
+  if (this.filterIds || this.use_post) {
     opts.headers['content-type'] = 'application/json';
-    payload = new Buffer(JSON.stringify(this.filterIds), 'utf8');
+    payload = new Buffer(JSON.stringify(this.filterIds || this.query), 'utf8');
   }
 
   //
