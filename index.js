@@ -123,12 +123,12 @@ ChangesStream.prototype.preRequest = function () {
 ChangesStream.prototype.request = function () {
   // Setup possible query string options
   this.preRequest();
-  var changes_url = url.resolve(this.db, '_changes'),
-      opts = url.parse(this.use_post
+  var changes_url = url.resolve(this.db, '_changes');
+  var opts = url.parse(this.use_post
         ? changes_url
         : url.resolve(changes_url, '?' + qs.stringify(this.query))
-      ),
-      payload;
+      );
+  var payload;
   //
   // Handle both cases of POST and GET
   //
