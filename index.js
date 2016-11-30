@@ -359,12 +359,10 @@ ChangesStream.prototype.cleanup = function () {
   }
   if (this.req && this.req.socket) {
     this.req.abort();
-    this.req.removeAllListeners();
     this.req = null;
   }
   this.preCleanup();
   if (this.source && this.source.socket) {
-    this.source.removeAllListeners();
     this.source.destroy();
     this.source = null
   }
