@@ -1,6 +1,6 @@
 # changes-stream
 
-[![build status](https://secure.travis-ci.org/jcrugzz/changes-stream.png)](http://travis-ci.org/jcrugzz/changes-stream)
+[![build status](https://secure.travis-ci.org/jcrugzz/changes-stream.svg)](http://travis-ci.org/jcrugzz/changes-stream)
 
 A fault tolerant changes stream with builtin retry HEAVILY inspired by
 [`follow`][follow]. This module is a [`Readable` Stream][readable] with all of
@@ -38,12 +38,12 @@ fully customize your `_changes` request. They include the following:
 ## Example
 
 ```js
-var ChangesStream = require('changes-stream');
+const ChangesStream = require('changes-stream');
 
-var changes = new ChangesStream('http://localhost:5984/my_database');
+const changes = new ChangesStream('http://localhost:5984/my_database');
 
-changes.on('readable', function () {
-  var change = changes.read();
+changes.on('readable', () => {
+  const change = changes.read();
 });
 
 ```
