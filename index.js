@@ -40,6 +40,13 @@ function ChangesStream (options) {
   // Time to wait for a new change before we jsut retry a brand new request
   this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
   this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 30 * 1000, retries: 5 };
+
+  // Patch min and max delay using heartbeat
+  var minDelay = Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
+  var maxDelay = Math.max(minDelay + (this.reconnect.maxDelay - this.reconnect.minDelay), this.reconnect.maxDelay)
+  this.reconnect.minDelay = minDelay
+  this.reconnect.maxDelay = maxDelay
+
   this.db = typeof options === 'string'
     ? options
     : options.db;
@@ -278,12 +285,7 @@ ChangesStream.prototype._onChange = function (change) {
 // On error be set for retrying the underlying request
 //
 ChangesStream.prototype._onError = function (err) {
-  var minDelay = Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
-  var maxDelay = Math.max(minDelay + (this.reconnect.maxDelay - this.reconnect.minDelay), this.reconnect.maxDelay)
-  this.attempt = this.attempt || extend({}, this.reconnect, {
-    minDelay: minDelay,
-    maxDelay: maxDelay
-  });
+  this.attempt = this.attempt || extend({}, this.reconnect);
 
   return back(function (fail, opts) {
     if (fail) {
