@@ -278,8 +278,11 @@ ChangesStream.prototype._onChange = function (change) {
 // On error be set for retrying the underlying request
 //
 ChangesStream.prototype._onError = function (err) {
+  var minDelay = Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
+  var maxDelay = Math.max(minDelay + (this.reconnect.maxDelay - this.reconnect.minDelay), this.reconnect.maxDelay)
   this.attempt = this.attempt || extend({}, this.reconnect, {
-    minDelay: Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
+    minDelay: minDelay,
+    maxDelay: maxDelay
   });
 
   return back(function (fail, opts) {
