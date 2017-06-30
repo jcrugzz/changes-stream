@@ -151,7 +151,7 @@ ChangesStream.prototype.request = function () {
   //
   // Set a timer for the initial request with some extra magic number
   //
-  this.timer = setTimeout(this.onTimeout.bind(this), (this.heartbeat || 30 * 1000) + 5000)
+  this.timer = setTimeout(this.onTimeout.bind(this), (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
 
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
@@ -205,6 +205,7 @@ ChangesStream.prototype.onTimeout = function () {
 //
 ChangesStream.prototype._readData = function (data) {
   debug('data event fired from the underlying _changes response');
+  this.attempt = null;
 
   this._buffer += this._decoder.write(data);
 
@@ -277,7 +278,10 @@ ChangesStream.prototype._onChange = function (change) {
 // On error be set for retrying the underlying request
 //
 ChangesStream.prototype._onError = function (err) {
-  this.attempt = this.attempt || extend({}, this.reconnect);
+  this.attempt = this.attempt || extend({}, this.reconnect, {
+    minDelay: Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
+  });
+
   return back(function (fail, opts) {
     if (fail) {
       this.attempt = null;
