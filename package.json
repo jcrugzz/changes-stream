@@ -23,7 +23,7 @@
   "homepage": "https://github.com/jcrugzz/changes-stream",
   "dependencies": {
     "back": "~0.1.5",
-    "debug": "~0.8.0",
+    "debug": "~3.1.0",
     "http-https": "~1.0.0",
     "readable-stream": "1.0.x"
   },
