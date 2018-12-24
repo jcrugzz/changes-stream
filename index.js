@@ -40,6 +40,13 @@ function ChangesStream (options) {
   // Time to wait for a new change before we jsut retry a brand new request
   this.inactivity_ms = options.inactivity_ms || 60 * 60 * 1000;
   this.reconnect = options.reconnect || { minDelay: 100, maxDelay: 30 * 1000, retries: 5 };
+
+  // Patch min and max delay using heartbeat
+  var minDelay = Math.max(this.reconnect.minDelay, (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
+  var maxDelay = Math.max(minDelay + (this.reconnect.maxDelay - this.reconnect.minDelay), this.reconnect.maxDelay)
+  this.reconnect.minDelay = minDelay
+  this.reconnect.maxDelay = maxDelay
+
   this.db = typeof options === 'string'
     ? options
     : options.db;
@@ -151,7 +158,7 @@ ChangesStream.prototype.request = function () {
   //
   // Set a timer for the initial request with some extra magic number
   //
-  this.timer = setTimeout(this.onTimeout.bind(this), (this.heartbeat || 30 * 1000) + 5000)
+  this.timer = setTimeout(this.onTimeout.bind(this), (this.heartbeat || DEFAULT_HEARTBEAT) + 5000)
 
   this.req = http.request(opts);
   this.req.setSocketKeepAlive(true);
@@ -205,6 +212,7 @@ ChangesStream.prototype.onTimeout = function () {
 //
 ChangesStream.prototype._readData = function (data) {
   debug('data event fired from the underlying _changes response');
+  this.attempt = null;
 
   this._buffer += this._decoder.write(data);
 
@@ -278,6 +286,7 @@ ChangesStream.prototype._onChange = function (change) {
 //
 ChangesStream.prototype._onError = function (err) {
   this.attempt = this.attempt || extend({}, this.reconnect);
+
   return back(function (fail, opts) {
     if (fail) {
       this.attempt = null;
