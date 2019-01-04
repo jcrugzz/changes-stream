@@ -214,7 +214,9 @@ ChangesStream.prototype._readData = function (data) {
   debug('data event fired from the underlying _changes response');
   this.attempt = null;
 
-  this._buffer += this._decoder.write(data);
+  var decodedData = this._decoder.write(data);
+  this._buffer += decodedData;
+  if(decodedData.indexOf('\n') === -1) return;
 
   var lines = this._buffer.split('\n');
   this._buffer = lines.pop();
